@@ -1,0 +1,73 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed May 22 17:27:59 2019
+爬华为的所有公开专利号
+@author: Administrator
+"""
+import json
+from selenium import webdriver
+from selenium.webdriver import Chrome 
+import time
+
+login = "http://www.pss-system.gov.cn/sipopublicsearch/portal/uilogin-forwardLogin.shtml"
+
+'''
+with open('cookies.json', 'r', encoding='utf-8') as f:
+    listCookies = json.loads(f.read())
+#启动隐形浏览器
+opt = webdriver.ChromeOptions()
+opt.set_headless()
+driver = webdriver.Chrome(options=opt)
+time.sleep(5)
+'''
+#自动登录
+'''
+for cookie in listCookies:
+    driver.add_cookie(cookie)
+driver.refresh()
+#爬数据
+ul = driver.find_element_by_xpath('//*[@id="resultMode"]/div/div[1]/ul')
+contents = ul.find_elements_by_tag_name('li')
+for content in contents:
+    print(content.find_element_by_xpath('//div/div[2]/div[1]/p[3]').text)
+'''
+driver = Chrome()
+driver.get(login)
+#-------------------手动登录--------------------#
+#网页输入账号和密码
+#-------------------开始爬虫--------------------#
+driver.find_element_by_id('search_input').send_keys('华为')
+driver.find_element_by_xpath('//*[@id="btn_generalSearch"]').click()
+time.sleep(10)
+public = []
+ul = driver.find_element_by_xpath('//*[@id="resultMode"]/div/div[1]/ul')
+contents = ul.find_elements_by_tag_name('li')
+for content in contents:
+    public.append(content.text.split('\n')[7])
+driver.find_element_by_xpath('//*[@id="resultMode"]/div/div[2]/div/div/div/div/a[4]').click()
+for i in range(1,10667):
+    '''
+    #清空文本框
+    driver.find_element_by_xpath('//*[@id="txt"]').clear()
+    #输入页数
+    driver.find_element_by_xpath('//*[@id="txt"]').send_keys('%i' %s)
+    #点击按钮
+    driver.find_element_by_xpath('//*[@id="resultMode"]/div/div[2]/div/div/div/div/a[8]').click()
+    '''
+    #爬虫数据
+    ul = driver.find_element_by_xpath('//*[@id="resultMode"]/div/div[1]/ul')
+    contents = ul.find_elements_by_tag_name('li')
+    for content in contents:
+        public.append(content.text.split('\n')[7])
+    #下一页
+    driver.find_element_by_xpath('//*[@id="resultMode"]/div/div[2]/div/div/div/div/a[6]').click()
+    time.sleep(20)
+'''
+#此部分程序用于获取cookie并通过json模块将dict转化成str
+#运行程序前，需要手动登入天眼查账号和密码
+dictCookies = driver.get_cookies()
+jsonCookies = json.dumps(dictCookies)
+# 登录完成后，将cookie保存到本地文件
+with open('cookies.json', 'w') as f:
+    f.write(jsonCookies)
+'''
