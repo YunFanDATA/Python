@@ -1,0 +1,101 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Mar  1 10:07:55 2019
+爬虫
+@author: Administrator
+"""
+import pandas as pd
+from selenium import webdriver
+import time
+
+#开始爬虫
+company = input("Please enter the name of company:")
+driver = webdriver.PhantomJS(executable_path="D:/chrome download/phantomjs-2.1.1-windows/phantomjs-2.1.1-windows/bin/phantomjs")
+u1 = 'https://patents.google.com/'
+driver.get(u1)
+time.sleep(2)
+nameField = driver.find_element_by_id('searchInput')
+submit = driver.find_element_by_id('searchButton')
+nameField.send_keys(company)
+submit.click()
+time.sleep(5)
+patend_link = driver.find_element_by_css_selector('a.style-scope.search-results').get_attribute('href')#专利号
+patend = pd.read_csv(patend_link,skiprows=1,header=0)
+#links = driver.find_element_by_tag_name('section').find_elements_by_css_selector('a.style-scope.state-modifier')[0].get_attribute('href')#专利号
+urls = patend['result link']
+
+pubnum = []
+IPC = []
+location = []
+pdf_url = []
+application = []
+public = []
+priority = []
+Worldwide  = []
+cite = []
+cite_url = []
+cited = []
+cited_url = []
+#num_cited =  []
+for url in urls:
+    driver.get(url)
+    time.sleep(2)
+    #专利号
+    pubnum.append(driver.find_element_by_id('pubnum').text) #专利号
+    print(pubnum[-1])
+    #IPC分类
+    cl = driver.find_elements_by_css_selector('div.style-scope.classification-tree')
+    tx  = ''
+    for lists in cl:
+        tx = tx +'.' + lists.text
+    IPC.append(tx)
+    #申请国
+    location.append(driver.find_element_by_css_selector('p.tagline.style-scope.patent-result').text)
+    #pdf地址
+    pdf_url.append(driver.find_element_by_css_selector('a.style-scope.patent-result').get_attribute('href'))
+    #申请日
+    application.append(driver.find_element_by_css_selector('div.filed.style-scope.application-timeline').text)
+    #公开日
+    public.append(driver.find_element_by_css_selector('div.publication.style-scope.application-timeline').text)
+    #priority
+    if "to" in driver.find_elements_by_css_selector('span.title-text.style-scope.application-timeline')[1].text:
+        priority.append(driver.find_elements_by_css_selector('span.title-text.style-scope.application-timeline')[1].text)
+    else:
+        priority.append(driver.find_elements_by_css_selector('span.title-text.style-scope.application-timeline')[0].text)
+    #worldwide application
+    Worldwide.append(len(driver.find_elements_by_id('cc')))
+    #引用
+    cite.append(driver.find_element_by_css_selector('dl.links.style-scope.patent-result').find_elements_by_css_selector('a.style-scope.patent-result')[0].text)
+    #引用链接
+    cite_url.append(driver.find_element_by_css_selector('dl.links.style-scope.patent-result').find_elements_by_css_selector('a.style-scope.patent-result')[0].get_attribute('href'))
+    #被引用
+    cited.append(driver.find_element_by_css_selector('dl.links.style-scope.patent-result').find_elements_by_css_selector('a.style-scope.patent-result')[1].text)
+    #被引用链接
+    cited_url.append(driver.find_element_by_css_selector('dl.links.style-scope.patent-result').find_elements_by_css_selector('a.style-scope.patent-result')[1].get_attribute('href'))
+    ##被引用数目
+    #num_cited.append(driver.find_element_by_id('citedBy').text) 
+        
+#———————————更改数据形式，保存数据——————————————————————— 
+n = len(pubnum)
+patend = patend.iloc[:n,:]
+patend['pubnum'] = pubnum
+patend['IPC'] = IPC
+patend['location'] = location
+patend['pdf_url'] = pdf_url
+patend['application'] = application
+patend['public'] = public
+try:
+    priority = list(map(lambda x:x.split(' to ')[1],priority))
+except:
+    priority = ''
+patend['priority'] = priority
+patend['Worldwide'] = Worldwide
+patend['cite'] = cite
+patend['cite_url'] = cite_url
+patend['cited'] = cited
+patend['cited_url'] = cited_url
+#patend['num_cited'] = list(map(lambda x:re.findall("\d+",x)[0],num_cited))
+del patend['representative figure link']
+driver.quit()
+with pd.ExcelWriter('专利.xlsx') as writer:  # doctest: +SKIP
+    patend.to_excel(writer, sheet_name='综合',index=False)    
