@@ -1,0 +1,45 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Apr  3 23:13:07 2019
+
+@author: 猎鹰投资
+本程序作为补充程序，出现机器人页面时候或者程序出错中断时，运行此程序
+"""
+
+a = i
+b = k+1
+for i in range(a,m):
+    print(company_name[i])
+    driver.get(all_url[i])
+    time.sleep(2)
+    basic_info = basic_info.append(get_basic_info(company_name[i]))
+    member = member.append(get_member(company_name[i]))
+    shareholder = shareholder.append(get_shareholder(company_name[i]))
+    change = change.append(get_change(company_name[i]))
+for k in range(b,n+1):
+    sheet = '第' + str(k) +'级'
+    df = pd.read_excel('投资公司名单.xlsx',sheet_name = sheet,header=0)
+    all_url = df['url']
+    company_name = df['invested_company']
+    m = len(all_url)
+    for i in range(m):
+        print(company_name[i])
+        driver.get(all_url[i])
+        time.sleep(2)
+        basic_info = basic_info.append(get_basic_info(company_name[i]))
+        member = member.append(get_member(company_name[i]))
+        shareholder = shareholder.append(get_shareholder(company_name[i]))
+        change = change.append(get_change(company_name[i]))
+basic_info.columns = basic_info_name
+member.columns = member_name
+shareholder.columns = shareholder_name
+change.columns = change_name
+with pd.ExcelWriter('企业基础信息.xlsx') as writer:
+    basic_info.to_excel(writer, sheet_name='基本信息',index=False)
+    member.to_excel(writer, sheet_name='人员',index=False)
+    shareholder.to_excel(writer, sheet_name='股东',index=False)
+    change.to_excel(writer, sheet_name='变更记录',index=False)
+'''
+最后信息全部收集完毕后运行此程序
+'''
+writer.save()

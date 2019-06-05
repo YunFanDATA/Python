@@ -1,0 +1,139 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed May  1 20:10:54 2019
+@author: Administrator
+此程序用于爬取企业工商基础信息
+"""
+import time
+from selenium.webdriver import Chrome
+import pandas as pd
+import json
+
+#列名
+basic_info_name =['公司名称','电话号码','公司网址','公司简介','经营状态','营业期限','实缴资本','地址','经营范围']
+member_name = ['姓名','职位','公司名称']
+shareholder_name = ['股东名','股比','公司名']
+invest_name = ['被投企业名','投资时间','所占股比','公司名']
+change_name = ['时间','变更项目','变更前','变更后','公司名']
+#基础信息表
+basic_info = pd.DataFrame()
+member = pd.DataFrame()
+shareholder = pd.DataFrame()
+change = pd.DataFrame()
+#以下是爬取不同信息表的函数
+def get_basic_info(company):
+    """
+    该函数用于获得基本信息表
+    """
+    try:
+        phone = driver.find_element_by_xpath('//*[@id="company_web_top"]/div[2]/div[2]/div[3]/div[1]/div[1]/span[2]').text  #电话号码
+    except:
+        phone = None
+    try:
+        company_url = driver.find_element_by_xpath('//*[@id="company_web_top"]/div[2]/div[2]/div[3]/div[2]/div[1]/a').text  #公司网站地址
+    except:
+        company_url = None
+    try:
+        company_abstract = driver.find_element_by_xpath('//*[@id="company_web_top"]/div[2]/div[2]/div[3]/div[3]/div/div').text  # 简介
+    except:
+        company_abstract = None
+    state = driver.find_element_by_xpath('//*[@id="_container_baseInfo"]/table[2]/tbody/tr[2]/td[2]').text
+    deadline = driver.find_element_by_xpath('//*[@id="_container_baseInfo"]/table[2]/tbody/tr[5]/td[2]/span').text
+    capital = driver.find_element_by_xpath('//*[@id="_container_baseInfo"]/table[2]/tbody/tr[7]/td[2]').text
+    company_site = driver.find_element_by_xpath('//*[@id="company_web_top"]/div[2]/div[2]/div[3]/div[2]/div[2]/div/div').text  #公司地址
+    business_scope = driver.find_element_by_xpath('//*[@id="_container_baseInfo"]/table[2]/tbody/tr[11]/td[2]/span/div/div').text
+    return pd.DataFrame([company,phone,company_url,company_abstract,state,deadline,capital,company_site,business_scope]).T
+
+def get_member(company):
+    """
+    该函数用于获取职工人员表，包括名字和职位
+    """
+    trs = driver.find_elements_by_xpath('//*[@id="_container_staff"]/div/table/tbody/tr')
+    name = []
+    position = []
+    for tr in trs:
+        name.append(tr.find_element_by_css_selector('a.link-click').text)
+        position.append(tr.find_element_by_xpath('td[3]/span').text)
+    data = pd.DataFrame([name,position]).T
+    data['company'] = company
+    return data
+
+def get_shareholder(company):
+    """
+    该函数用于获取股东表，包括公司名,股东名,股比
+    """
+    trs = driver.find_elements_by_xpath('//*[@id="_container_holder"]/table/tbody/tr')
+    holder_name = []
+    percentage = []
+    for tr in trs:
+        holder_name.append(tr.find_element_by_css_selector('a.link-click').text)
+        percentage.append(tr.find_element_by_xpath('td[3]/div/div/span').text)
+    data = pd.DataFrame([holder_name,percentage]).T
+    data['company'] = company
+    return data
+
+def get_invest():
+    """
+    该函数用于获取对外投资
+    """
+    pass
+
+def get_change(company):
+    """
+    该函数用于获取变更记录
+    """
+    trs = driver.find_elements_by_xpath('//*[@id="_container_changeinfo"]/table/tbody/tr')
+    date = []
+    item = []
+    before = []
+    after = []
+    for tr in trs:
+        date.append(tr.find_element_by_xpath('td[2]').text)
+        item.append(tr.find_element_by_xpath('td[3]').text)
+        before.append(tr.find_element_by_xpath('td[4]/div').text)
+        after.append(tr.find_element_by_xpath('td[5]/div').text)
+    data = pd.DataFrame([date,item,before,after]).T
+    data['company'] = company
+    return data
+
+if __name__ == '__main__':
+    #加载账户cookies
+    with open('cookies.json', 'r', encoding='utf-8') as f:
+        listCookies = json.loads(f.read())
+    #启动浏览器
+    driver = Chrome()
+    start_url = 'https://www.tianyancha.com'
+    driver.get(start_url)
+    time.sleep(1)
+    for cookie in listCookies:
+        driver.add_cookie(cookie)
+    driver.refresh()
+    #从文件提取公司和url
+    n = int(input('请输入投资公司名单文件的总级数：'))
+    for k in range(1,n+1):
+        sheet = '第' + str(k) +'级'
+        df = pd.read_excel('投资公司名单.xlsx',sheet_name = sheet,header=0)
+        all_url = df['url']
+        company_name = df['invested_company']
+        m = len(all_url)
+        for i in range(m):
+            print(company_name[i])
+            driver.get(all_url[i])
+            time.sleep(2)
+            #得到公司的工商信息
+            basic_info = basic_info.append(get_basic_info(company_name[i]))
+            member = member.append(get_member(company_name[i]))
+            shareholder = shareholder.append(get_shareholder(company_name[i]))
+            change = change.append(get_change(company_name[i]))
+    basic_info.columns = basic_info_name
+    member.columns = member_name
+    shareholder.columns = shareholder_name
+    change.columns = change_name
+    #写入文件，并保存   
+    with pd.ExcelWriter('企业基础信息.xlsx') as writer:
+        basic_info.to_excel(writer, sheet_name='基本信息',index=False)
+        member.to_excel(writer, sheet_name='人员',index=False)
+        shareholder.to_excel(writer, sheet_name='股东',index=False)
+        change.to_excel(writer, sheet_name='变更记录',index=False)
+    writer.save()
+    driver.quit()
