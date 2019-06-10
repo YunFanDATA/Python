@@ -1,0 +1,97 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Jun  6 13:25:32 2019
+
+@author: 猎鹰投资
+"""
+
+import pandas as pd
+import numpy as np
+import time
+from selenium import webdriver
+from selenium.webdriver import Chrome 
+import json
+
+def inquiry(industry):
+    """
+    搜索行业
+    """
+    index_input_company = driver.find_element_by_xpath('//input[@id="home-main-search"]')  # 主页搜索框
+    index_input_company.send_keys(industry)
+    driver.find_element_by_xpath('//*[@id="web-content"]/div/div[1]/div[2]/div/div/div[2]/div[2]/div[1]/div').click()  # 点击搜索
+    time.sleep(2)
+    #数据导出
+    try:
+        driver.execute_script("window.scrollBy(0, 200)")
+        driver.find_element_by_xpath('//*[@id="search"]/a[1]').click() # 点击数据导出)
+        driver.refresh()
+        time.sleep(5)
+        driver.refresh()
+        #driver.find_element_by_xpath('//*[@id="_container_myorderlist"]/div/table/tbody/tr[1]/td[5]/span').click()
+        excel_url = driver.find_element_by_xpath('//*[@id="_container_myorderlist"]/div/table/tbody/tr[1]/td[5]/a').get_attribute('href') #得到excel的链接
+        all_company = pd.read_excel(excel_url)
+        return all_company
+    except:
+        print('没有搜索到相应的公司')
+        return pd.DataFrame()
+    
+def get_basic_info(company):
+    """
+    该函数用于获得基本信息表
+    """
+    try:
+        phone = driver.find_element_by_xpath('//*[@id="company_web_top"]/div[2]/div[2]/div[3]/div[1]/div[1]/span[2]').text  #电话号码
+    except:
+        phone = None
+    try:
+        company_url = driver.find_element_by_xpath('//*[@id="company_web_top"]/div[2]/div[2]/div[3]/div[2]/div[1]/a').text  #公司网站地址
+    except:
+        company_url = None
+    try:
+        company_abstract = driver.find_element_by_xpath('//*[@id="company_web_top"]/div[2]/div[2]/div[3]/div[3]/div/div').text  # 简介
+    except:
+        company_abstract = None
+    state = driver.find_element_by_xpath('//*[@id="_container_baseInfo"]/table[2]/tbody/tr[2]/td[2]').text
+    deadline = driver.find_element_by_xpath('//*[@id="_container_baseInfo"]/table[2]/tbody/tr[5]/td[2]/span').text
+    capital = driver.find_element_by_xpath('//*[@id="_container_baseInfo"]/table[2]/tbody/tr[7]/td[2]').text
+    company_site = driver.find_element_by_xpath('//*[@id="company_web_top"]/div[2]/div[2]/div[3]/div[2]/div[2]/div/div').text  #公司地址
+    business_scope = driver.find_element_by_xpath('//*[@id="_container_baseInfo"]/table[2]/tbody/tr[11]/td[2]/span/div/div').text
+    return pd.DataFrame([company,phone,company_url,company_abstract,state,deadline,capital,company_site,business_scope]).T
+
+
+
+if __name__ == '__main__':
+    #加载账户cookies
+    with open('cookies.json', 'r', encoding='utf-8') as f:
+        listCookies = json.loads(f.read())
+    #启动浏览器
+    driver = Chrome()
+    start_url = 'https://www.tianyancha.com'
+    driver.get(start_url)
+    time.sleep(1)
+    for cookie in listCookies:
+        driver.add_cookie(cookie)
+    driver.refresh()
+    #搜索 行业
+    industry = input('请输入要搜索的行业： ')
+    companies = inquiry(industry)
+    
+    with pd.ExcelWriter('%s行业信息.xlsx' %industry) as writer:
+        companies.to_excel(writer, sheet_name='基本信息',index=False)
+    writer.save()
+    #driver.quit()
+'''
+#此部分程序用于获取cookie并通过json模块将dict转化成str
+#运行程序前，需要手动登入天眼查账号和密码
+driver = Chrome()
+start_url = 'https://www.tianyancha.com'
+driver.get(start_url)
+#-------------登入--------------#
+#账号：18959203391
+#密码：data2019
+dictCookies = driver.get_cookies()
+jsonCookies = json.dumps(dictCookies)
+# 登录完成后，将cookie保存到本地文件
+with open('cookies.json', 'w') as f:
+    f.write(jsonCookies)
+'''
