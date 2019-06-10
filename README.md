@@ -1,5 +1,4 @@
 # 猎鹰python爬虫
-爬取【 "http://www.pss-system.gov.cn” 】 中华为公司的专利号
 
 # 文件夹
 - Google专利
@@ -8,7 +7,7 @@
   * 专利综合信息
     在基本信息的基础上，增加了 Patent Citations、Cited By、Similar Documents三张表；
 - 专利公开号  
-  在国家专利局网址上爬取，完整的各个公司专利号；
+  在国家专利局【 "http://www.pss-system.gov.cn” 】网址上爬取完整的各个公司专利号，但爬取速度较慢；
 - 多层级投资公司
   * 投资公司名单
   在天眼查网站，爬取一家公司的一级、二级、三级...n级投资公司详情；
